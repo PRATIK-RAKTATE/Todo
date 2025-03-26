@@ -373,7 +373,7 @@ const TaskDetails: React.FC<TaskDetailsProps> = ({ task, onClose, users }) => {
                 defaultValue={task.receiver._id}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a user" />
+                  <SelectValue aria-placeholder ="Select a user" />
                 </SelectTrigger>
                 <SelectContent>
                   {users.map((user) => (

@@ -1,7 +1,7 @@
-import mongoose from "mongoose";
 import { Task } from "../models/task.model.js";
 import { User } from "../models/user.model.js";
 
+// Assign a Task
 export const assignTask = async (req, res) => {
   try {
     const { title, description, receiverId } = req.body;

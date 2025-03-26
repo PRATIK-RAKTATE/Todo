@@ -24,10 +24,10 @@ const taskSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "inProgress", "completed", "approved"],
+      enum: ["pending", "inProgress", "completed", "approved", "rejected"],
       default: "pending"
     },
-    remark: {
+    remarks: {
       type: String,
       trim: true
     },
@@ -38,6 +38,27 @@ const taskSchema = new Schema(
           ref: "User"
         },
         reassignedAt: {
+          type: Date,
+          default: Date.now
+        }
+      }
+    ],
+    dueDate: {
+      type: Date,
+      required: [true, "Due date is required"]
+    },
+    comments: [
+      {
+        user: {
+          type: Schema.Types.ObjectId,
+          ref: "User",
+          required: true
+        },
+        message: {
+          type: String,
+          required: true
+        },
+        createdAt: {
           type: Date,
           default: Date.now
         }
