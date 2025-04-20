@@ -69,7 +69,7 @@ import { useAuth } from "./context/AuthContext";
 import FAQ from "./components/FAQ"; // Import FAQ component
 import InviteRequestsPage from "./components/student/InviteRequestsPage";
 import TaskList from "./components/TaskManagement/TaskList";
-import { ToastProvider } from "./components/ui/use-toast";
+import { ToastProvider } from "@/components/ui/use-toast.js";
 // @ts-ignore
 import FormTask from "./components/TaskManagement/FormTask.jsx";
 // @ts-ignore

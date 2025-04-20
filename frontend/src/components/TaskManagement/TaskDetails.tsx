@@ -461,58 +461,178 @@
 
 // export default TaskDetails;
 import React, { useState, useEffect } from "react";
+
 import { useParams, Link, useLocation } from "react-router-dom";
+
 import axios from "axios";
+
 import { format, parseISO, isValid } from "date-fns";
+
+import { useToast } from "@/components/ui/use-toast";
 
 interface Assigner {
   id: string;
+
   name: string;
+
   email: string;
 }
 
 interface Receiver {
   id: string;
+
   name: string;
+
   email: string;
 }
 
 interface TaskDetails {
   id: string;
+
   title: string;
+
   description: string;
+
   status: string;
+
   deadline?: string;
+
   createdAt: string;
+
   updatedAt: string;
+
   assigner?: Assigner;
+
   receiver?: Receiver;
 }
 
 const TaskDetails: React.FC = () => {
   const { taskId } = useParams<{ taskId: string }>();
+
   const location = useLocation();
+
   const [task, setTask] = useState<TaskDetails | null>(null);
+
   const [loading, setLoading] = useState(true);
+
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ Improved date formatting function
+  const { toast } = useToast(); // ✅ Improved date formatting function
+
   const formatDate = (dateString?: string) => {
     if (!dateString) return "N/A";
+
     try {
       const date = parseISO(dateString);
+
       if (!isValid(date)) throw new Error("Invalid date");
+
       return format(date, "MMM dd, yyyy @ hh:mm a");
     } catch (error) {
       console.error("Date formatting error:", error);
+
       return "Invalid Date";
+    }
+  };
+
+  const handleAccept = async () => {
+    try {
+      await axios.post(
+        `http://localhost:4000/api/v1/assigner/task/${taskId}/accept`,
+
+        {},
+
+        {
+          withCredentials: true,
+        }
+      );
+
+      toast({
+        title: "Success",
+
+        description: "Task accepted successfully!",
+
+        variant: "default",
+      });
+
+      setTask((prev) => (prev ? { ...prev, status: "ACCEPTED" } : prev));
+    } catch (error) {
+      toast({
+        title: "Error",
+
+        description: "Failed to accept the task.",
+
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleApprove = async () => {
+    try {
+      await axios.put(
+        `http://localhost:4000/api/v1/assigner/task/${taskId}/approve`,
+
+        {},
+
+        { withCredentials: true }
+      );
+
+      toast({
+        title: "Task Approved",
+
+        description: "The task has been approved successfully.",
+
+        variant: "default",
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+
+        description: "Failed to approve the task.",
+
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleComplete = async () => {
+    try {
+      await axios.post(
+        `http://localhost:4000/api/v1/assigner/task/${taskId}/complete`,
+
+        {},
+
+        {
+          withCredentials: true,
+        }
+      );
+
+      toast({
+        title: "Success",
+
+        description: "Task marked as complete!",
+
+        variant: "default",
+      });
+
+      setTask((prev) => (prev ? { ...prev, status: "COMPLETED" } : prev));
+    } catch (error) {
+      toast({
+        title: "Error",
+
+        description: "Failed to complete the task.",
+
+        variant: "destructive",
+      });
     }
   };
 
   useEffect(() => {
     if (location.state?.task) {
       setTask(location.state.task);
+
       setLoading(false);
+
       return;
     }
 
@@ -520,10 +640,13 @@ const TaskDetails: React.FC = () => {
       try {
         const response = await axios.get(
           `http://localhost:4000/api/v1/assigner/task/${taskId}`,
+
           {
             withCredentials: true,
+
             headers: {
               Accept: "application/json",
+
               "Content-Type": "application/json",
             },
           }
@@ -549,7 +672,8 @@ const TaskDetails: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
+        {" "}
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>{" "}
       </div>
     );
   }
@@ -557,98 +681,125 @@ const TaskDetails: React.FC = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        {" "}
         <div className="bg-red-100 p-4 rounded-lg border border-red-500">
-          <p className="text-red-700">{error}</p>
+          <p className="text-red-700">{error}</p>{" "}
           <Link
             to="/task-home"
             className="mt-4 inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
           >
-            Back to Tasks
-          </Link>
-        </div>
+            Back to Tasks{" "}
+          </Link>{" "}
+        </div>{" "}
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 md:p-8 mt-20">
-      {/* Container with relative positioning for absolute positioned link */}
+      {" "}
+      {/* Container with relative positioning for absolute positioned link */}{" "}
       <div className="relative max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6 border border-gray-300">
+        {" "}
         <Link
           to="/task-home"
           className="mb-6 inline-block text-blue-600 hover:text-blue-800"
         >
-          ← Back to Tasks
-        </Link>
-
+          ← Back to Tasks{" "}
+        </Link>{" "}
         {task ? (
           <>
+            {" "}
             <h1 className="text-3xl font-bold mb-6 text-center">
-              {task.title}
-            </h1>
+              {task.title}{" "}
+            </h1>{" "}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Left Side */}
+              {/* Left Side */}{" "}
               <div className="space-y-4 border-r pr-4">
-                <DetailItem label="Status" value={task.status} />
+                {" "}
+                <DetailItem label="Status" value={task.status} />{" "}
                 <DetailItem
                   label="Deadline"
                   value={formatDate(task.deadline)}
-                />
+                />{" "}
                 <DetailItem
                   label="Created At"
                   value={formatDate(task.createdAt)}
-                />
+                />{" "}
                 <DetailItem
                   label="Updated At"
                   value={formatDate(task.updatedAt)}
-                />
+                />{" "}
               </div>
-
-              {/* Right Side */}
+              {/* Right Side */}{" "}
               <div className="space-y-4 pl-4">
-                <DetailItem label="Description" value={task.description} />
+                {" "}
+                <DetailItem label="Description" value={task.description} />{" "}
                 {task.assigner && (
                   <div className="border p-4 rounded-lg bg-gray-50">
-                    <h2 className="text-lg font-semibold">Assigner</h2>
-                    <p className="text-gray-700">{task.assigner.name}</p>
-                    <p className="text-gray-500">{task.assigner.email}</p>
+                    {" "}
+                    <h2 className="text-lg font-semibold">Assigner</h2>{" "}
+                    <p className="text-gray-700">{task.assigner.name}</p>{" "}
+                    <p className="text-gray-500">{task.assigner.email}</p>{" "}
                   </div>
-                )}
+                )}{" "}
                 {task.receiver && (
                   <div className="border p-4 rounded-lg bg-gray-50">
-                    <h2 className="text-lg font-semibold">Receiver</h2>
-                    <p className="text-gray-700">{task.receiver.name}</p>
-                    <p className="text-gray-500">{task.receiver.email}</p>
+                    {" "}
+                    <h2 className="text-lg font-semibold">Receiver</h2>{" "}
+                    <p className="text-gray-700">{task.receiver.name}</p>{" "}
+                    <p className="text-gray-500">{task.receiver.email}</p>{" "}
                   </div>
-                )}
-              </div>
-            </div>
+                )}{" "}
+              </div>{" "}
+            </div>{" "}
           </>
         ) : (
           <div className="text-center text-red-500 p-6">
-            No task details found
+            No task details found{" "}
           </div>
         )}
-
-        {/* "Add Comment" Link placed at bottom right */}
+        {/* "Add Comment" Link placed at bottom right */}{" "}
         <Link
           to={`/task/${taskId}/comments`}
           className=" bottom-4 right-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
         >
-          Add Comment
-        </Link>
-      </div>
+          Add Comment{" "}
+        </Link>{" "}
+        <div className="mt-6 flex justify-end space-x-3">
+          {" "}
+          <button
+            onClick={handleAccept}
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
+          >
+            Accept{" "}
+          </button>{" "}
+          <button
+            onClick={handleComplete}
+            className="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700 transition"
+          >
+            Complete{" "}
+          </button>{" "}
+          <button
+            onClick={handleComplete}
+            className="bg-cyan-600 text-white px-4 py-2 rounded hover:bg-cyan-700 transition"
+          >
+            Approve{" "}
+          </button>{" "}
+        </div>{" "}
+      </div>{" "}
     </div>
   );
 };
 
 const DetailItem: React.FC<{ label: string; value?: React.ReactNode }> = ({
   label,
+
   value,
 }) => (
   <div className="border-b pb-2">
-    <dt className="font-medium text-gray-600">{label}</dt>
-    <dd className="mt-1 text-gray-900">{value || "N/A"}</dd>
+    <dt className="font-medium text-gray-600">{label}</dt>{" "}
+    <dd className="mt-1 text-gray-900">{value || "N/A"}</dd>{" "}
   </div>
 );
 

@@ -84,6 +84,10 @@ const milestoneSchema = new Schema(
       required: [true, "Milestone text is required"],
       trim: true,
     },
+    sequence: {
+      type: Number,
+      required: true,
+    },
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: "User",
@@ -92,10 +96,19 @@ const milestoneSchema = new Schema(
     createdAt: {
       type: Date,
       default: Date.now,
-    },
+    }
   },
-  { _id: true }  
+  { timestamps: true }  
 );
+
+// Add a pre-save hook to handle sequence updates
+milestoneSchema.pre('save', async function(next) {
+  if (this.isNew) {
+    const lastMilestone = await this.constructor.findOne({}, {}, { sort: { sequence: -1 } });
+    this.sequence = lastMilestone ? lastMilestone.sequence + 1 : 1;
+  }
+  next();
+});
 
 export const Task = mongoose.model("Task", taskSchema);
 export const Milestone = mongoose.model("Milestone", milestoneSchema);

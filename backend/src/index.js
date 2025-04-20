@@ -17,4 +17,4 @@ connectDB()
     console.log("MONGO db connection failed !!! ", err);
 })
 
-serverless(app)
+export const handler = serverless(app);

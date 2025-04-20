@@ -25,6 +25,10 @@ const inviteAndRequestSchema = new Schema({
         enum: ['pending', 'accepted', 'rejected'],
         default: 'pending'
     },
+    groupId: {
+        type: Schema.Types.ObjectId,
+        ref: "Group"
+    },
 
 
 },

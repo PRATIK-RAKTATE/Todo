@@ -7,6 +7,7 @@ import { Student } from "../models/student.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { DonatedAbstract } from "../models/donatedAbstract.model.js";
 import { InviteAndRequest } from "../models/inviteAndRequest.model.js";
+import { Group } from "../models/group.model.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 
@@ -268,6 +269,7 @@ const finalizeAbstract = asyncHandler(async (req, res) => {
     }
 });
 
+// get project requirements and matching students
 const getProjectAndStudentData = asyncHandler(async (req, res) => {
     try {
         if (!req.user || !req.user.finalizedAbstract) {
@@ -346,6 +348,25 @@ const sendInvitations = asyncHandler(async (req, res) => {
         }).select("to");
 
         const existingToIds = new Set(existingInvites.map(invite => invite.to.toString()));
+
+        // check if group exists
+        let groupId;
+        if(fromStudent.groupId){
+            groupId = fromStudent.groupId;
+        }else{
+            try {
+                const group = await Group.create({
+                    project: fromStudent.finalizedAbstract,
+                    leader: fromStudent._id,
+                    members: [fromStudent._id],
+                });
+                groupId = group._id;
+            } catch (error) {
+                console.error("Error creating group:", error);
+                return res.status(500).json({ message: "Internal Server Error" });
+            }
+            
+        }
 
         // Create new invite requests excluding existing ones
         const newInvites = validStudentIds
@@ -488,7 +509,8 @@ const getInvitesAndRequests = asyncHandler(async (req, res) => {
         const inviteData = {
             name: counterparty.id.name,
             date: invite.createdAt.toLocaleDateString('en-GB'), // Format as DD/MM/YYYY
-            status: invite.status
+            status: invite.status,
+            inviteId: invite._id
         };
 
         if (invite.type === "invite") {
@@ -498,7 +520,7 @@ const getInvitesAndRequests = asyncHandler(async (req, res) => {
                     title: invite.abstractId.title,
                     abstract: invite.abstractId.abstract,
                     domain: invite.abstractId.domain,
-                    requirements: invite.abstractId.requirements
+                    requirements: invite.abstractId.requirements,
                 }
             });
         } else {
@@ -521,6 +543,64 @@ const getInvitesAndRequests = asyncHandler(async (req, res) => {
 });
 
 
+// response to invites - accept and reject
+const inviteResponse = asyncHandler(async (req, res) => {
+    const { inviteId, response } = req.body;
+
+    if (!inviteId || !response) {
+        throw new ApiError(400, "Invite ID and response are required");
+    }
+
+    const invite = await InviteAndRequest.findById(inviteId);
+
+    if (!invite) {
+        throw new ApiError(404, "Invite not found");
+    }
+
+    if (invite.status !== "pending") {
+        throw new ApiError(400, "Invite is not pending");
+    }
+
+    // check if group has less than 4 members
+    let group = await Group.findById(invite.groupId);
+    let memberCount = 0;
+    if (group) {
+        if (group.members.length >= 4) {
+            throw new ApiError(400, "Group has already 4 members");
+        }
+    
+        // check number of members in group
+        memberCount = group.members.length;
+
+    
+        // check if group is completed
+        if (group.status === "completed") {
+            throw new ApiError(400, "Group is not accepting more members");
+        }
+    }
+
+
+    invite.status = response;
+    await invite.save();
+
+    // update group members
+    if (response === "accepted" && group) {
+        group.members.push(invite.to);
+        if (memberCount === 3) {
+            group.status = "completed";
+        }
+        await group.save();
+    }
+
+    // change group status if group is full
+    
+
+    if (response === "accepted") {
+        return res.status(200).json(new ApiResponse(200, {}, "Invite accepted successfully"));
+    } else {
+        return res.status(200).json(new ApiResponse(200, {}, "Invite rejected successfully"));
+    }
+})
 
 const studentDashboard = asyncHandler(async (req, res) => {
 
@@ -556,5 +636,6 @@ export {
     finalizeAbstract,
     getProjectAndStudentData,
     sendInvitations,
-    getInvitesAndRequests
+    getInvitesAndRequests,
+    inviteResponse
 }

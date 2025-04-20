@@ -1,5 +1,6 @@
 import express from 'express';
 import { verifyJWT } from '../middlewares/auth.middleware.js';
+import { checkMilestoneOwnership } from '../middlewares/checkMilestoneOwnership.middleware.js';
 import {
   assignTask,
   acceptTask,
@@ -17,7 +18,9 @@ import {
   getComments,
   addComment,
   createMilestone,
-  getAllMilestones
+  getAllMilestones,
+  updateMilestone,
+  deleteMilestone
 } from '../controllers/assigner.controller.js';
 
 const router = express.Router();
@@ -31,8 +34,12 @@ router.route('/me')
   .get(getTasksAcceptedByUser) // task accepted by usr
 
 router.route('/milestone')
-  .post(createMilestone)  
-  .get(getAllMilestones)
+  .post(verifyJWT, createMilestone)
+  .get(verifyJWT, getAllMilestones);
+
+router.route('/milestone/:id')
+  .patch(checkMilestoneOwnership, updateMilestone)
+  .delete(checkMilestoneOwnership, deleteMilestone);
 
 router.route('/me/completed') 
   .get(getMyCompletedTasks)

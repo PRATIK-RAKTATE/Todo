@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 import { User } from "../models/user.model.js";
 import { Task } from "../models/assigner.model.js";
 import { Milestone } from "../models/assigner.model.js";
@@ -273,7 +273,7 @@ const approveCompletion = async (req, res) => {
     if (task.assigner.toString() !== req.user.id)
       return res.status(403).json({ message: "Unauthorized" });
 
-    task.status = isApproved ? "approved" : "pending";
+    task.status = isApproved ? "approved" : "approved";
     task.remark = remark;
     await task.save();
 
@@ -647,73 +647,195 @@ const getComments = async (req, res) => {
 
 const createMilestone = async (req, res) => {
   try {
-    // 1. Role Check (Staff-Only)
-    if (req.user.role !== 'staff') {
-      return res.status(403).json({ error: 'Only staff can create milestones' });
-    }
-
-    // 2. Input Validation
+    console.log('Request body:', req.body);
+    console.log('User:', req.user);  // Check if user data is available
+    
     const { milestone } = req.body;
-    if (!milestone?.trim() || typeof milestone !== 'string') { // Check for empty strings
-      return res.status(400).json({ error: 'Milestone text is required and cannot be empty' });
+    
+    console.log('Milestone text:', milestone);
+    
+    // Validate milestone text
+    if (!milestone?.trim()) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Milestone text is required' 
+      });
     }
 
-    // 3. Create Milestone
+    // Get total count for sequence calculation
+    const totalMilestones = await Milestone.countDocuments();
+    const newSequence = totalMilestones + 1;
+
+    // Create new milestone
     const newMilestone = new Milestone({
-      milestone: milestone.trim(), // Trim whitespace
-      createdBy: req.user.id, // Ensure this is a valid ObjectId
+      milestone: milestone.trim(),
+      createdBy: req.user._id,  // Make sure req.user._id exists
+      sequence: newSequence
     });
 
     const savedMilestone = await newMilestone.save();
+    await savedMilestone.populate('createdBy', 'name email');
 
-    // 4. Format Response
-    res.status(201).json({
-      id: savedMilestone._id,
-      milestone: savedMilestone.milestone,
-      createdBy: savedMilestone.createdBy.toString(), // Convert to string
-      createdAt: savedMilestone.createdAt.toISOString(),
+    console.log('Saved milestone:', savedMilestone);
+    
+    return res.status(201).json({
+      success: true,
+      data: {
+        id: savedMilestone._id,
+        milestone: savedMilestone.milestone,
+        sequence: savedMilestone.sequence,
+        createdBy: {
+          id: savedMilestone.createdBy._id.toString(),
+          name: savedMilestone.createdBy.name,
+          email: savedMilestone.createdBy.email
+        },
+        createdAt: savedMilestone.createdAt.toISOString(),
+        canEdit: true
+      }
     });
 
   } catch (error) {
-    // 5. Error Handling
-    console.error('Error creating milestone:', error);
-
-    // Handle duplicate key errors (if applicable)
-    if (error.code === 11000) {
-      return res.status(409).json({ error: 'Milestone already exists' });
-    }
-
-    // Handle validation errors (e.g., invalid createdBy ObjectId)
-    if (error.name === 'ValidationError') {
-      return res.status(400).json({ error: error.message });
-    }
-
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Detailed error:', {
+      message: error.message,
+      stack: error.stack
+    });
+    return res.status(500).json({ 
+      success: false,
+      error: 'Internal server error',
+      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
 const getAllMilestones = async (req, res) => {
   try {
- 
     const milestones = await Milestone.find()
-      .sort({ createdAt: -1 }) // new first
-      .populate('createdBy', 'username email'); // Include staff user details
+      .sort({ sequence: 1 })
+      .populate('createdBy', 'name email');
 
-    // format res to match post api endpoint
     const formattedMilestones = milestones.map((milestone) => ({
       id: milestone._id,
       milestone: milestone.milestone,
-      createdBy: milestone.createdBy?._id.toString(), // User ID
+      sequence: milestone.sequence,
+      createdBy: {
+        id: milestone.createdBy?._id.toString(),
+        name: milestone.createdBy?.name,
+        email: milestone.createdBy?.email
+      },
       createdAt: milestone.createdAt.toISOString(),
-      // Optional: Include populated user fields
-      staffName: milestone.createdBy?.username 
+      canEdit: milestone.createdBy?._id.toString() === req.user.id
     }));
 
     res.status(200).json(formattedMilestones);
-
   } catch (error) {
-    console.error('Error fetching milestones:', error);
     res.status(500).json({ error: 'Server error' });
+  }
+};
+
+const updateMilestone = async (req, res) => {
+  try {
+    const { milestone, newSequence } = req.body;
+    const existingMilestone = req.milestone; 
+
+    if (!milestone && newSequence === undefined) {
+      return res.status(400).json({ 
+        error: 'Either milestone text or sequence must be provided' 
+      });
+    }
+
+    if (newSequence !== undefined) {
+      const maxSequence = await Milestone.countDocuments();
+      if (newSequence < 1 || newSequence > maxSequence) {
+        return res.status(400).json({ error: 'Invalid sequence number' });
+      }
+
+      // Update other milestones' sequences
+      if (newSequence > existingMilestone.sequence) {
+        await Milestone.updateMany(
+          { 
+            sequence: { 
+              $gt: existingMilestone.sequence, 
+              $lte: newSequence 
+            } 
+          },
+          { $inc: { sequence: -1 } }
+        );
+      } else if (newSequence < existingMilestone.sequence) {
+        await Milestone.updateMany(
+          { 
+            sequence: { 
+              $gte: newSequence, 
+              $lt: existingMilestone.sequence 
+            } 
+          },
+          { $inc: { sequence: 1 } }
+        );
+      }
+
+      existingMilestone.sequence = newSequence;
+    }
+
+    if (milestone) {
+      if (!milestone.trim()) {
+        return res.status(400).json({ error: 'Milestone text cannot be empty' });
+      }
+      existingMilestone.milestone = milestone.trim();
+    }
+
+    const updatedMilestone = await existingMilestone.save();
+    await updatedMilestone.populate('createdBy', 'name email');
+
+    return res.json({
+      id: updatedMilestone._id,
+      milestone: updatedMilestone.milestone,
+      sequence: updatedMilestone.sequence,
+      createdBy: {
+        id: updatedMilestone.createdBy._id.toString(),
+        name: updatedMilestone.createdBy.name,
+        email: updatedMilestone.createdBy.email
+      },
+      createdAt: updatedMilestone.createdAt.toISOString(),
+      canEdit: true
+    });
+  } catch (error) {
+    console.error('Update milestone error:', error);
+    return res.status(500).json({ 
+      error: 'Server error',
+      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+const deleteMilestone = async (req, res) => {
+  try {
+    const milestone = req.milestone; 
+    if (!milestone) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Milestone not found' 
+      });
+    }
+
+    // update sequences of remaining milestones
+    await Milestone.updateMany(
+      { sequence: { $gt: milestone.sequence } },
+      { $inc: { sequence: -1 } }
+    );
+
+    await milestone.deleteOne();
+
+    return res.status(200).json({ 
+      success: true,
+      message: 'Milestone deleted successfully',
+      deletedMilestoneId: milestone._id
+    });
+  } catch (error) {
+    console.error('Delete milestone error:', error);
+    return res.status(500).json({ 
+      success: false,
+      error: 'Server error',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
@@ -734,5 +856,7 @@ export {
   getComments,
   addComment,
   createMilestone,
-  getAllMilestones
+  getAllMilestones,
+  updateMilestone,
+  deleteMilestone
 }
