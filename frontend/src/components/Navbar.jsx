@@ -56,7 +56,7 @@ const Navbar = () => {
                   Notifications
                 </Link>
                 <Link
-                  to="/task"
+                  to="/task-home"
                   className="flex items-center px-3 py-2 text-gray-100 hover:text-white rounded-md hover:bg-blue-700 transition-colors"
                 >
                   <CheckSquare className="w-4 h-4 mr-2" />

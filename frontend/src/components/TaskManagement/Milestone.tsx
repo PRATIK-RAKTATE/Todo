@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, ArrowRight, X, Edit, Trash2, MoreVertical } from "lucide-react";
-import { toast, ToastContainer } from "react-toastify";
+// import { toast, ToastContainer } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 interface MilestoneData {
@@ -89,11 +90,13 @@ const Milestone: React.FC = () => {
         "http://localhost:4000/api/v1/assigner/task/milestone",
         { withCredentials: true }
       );
-      // We're setting them directly without reversing
       setMilestones(response.data);
     } catch (error) {
       console.error("Error fetching milestones:", error);
-      toast.error("Failed to load milestones");
+      toast.error("Failed to load milestones", {
+        autoClose: 5000,
+        closeOnClick: true,
+      });
     }
   };
 
@@ -108,21 +111,24 @@ const Milestone: React.FC = () => {
           headers: { "Content-Type": "application/json" },
         }
       );
-      // Add new milestone to the end of the array (will appear on the right)
-      const createdMilestone = response.data;
-      setMilestones([...milestones, createdMilestone]);
+      setMilestones([...milestones, response.data]);
       setNewMilestone("");
-      setDialogOpen(false); // Close the dialog after adding
-      toast.success("Milestone added successfully");
+      setDialogOpen(false);
+      toast.success("Milestone added successfully", {
+        autoClose: 5000,
+        closeOnClick: true,
+      });
     } catch (error) {
       console.error("Error adding milestone:", error);
-      toast.error("Failed to add milestone");
+      toast.error("Failed to add milestone", {
+        autoClose: 5000,
+        closeOnClick: true,
+      });
     }
   };
 
   const updateMilestone = async () => {
     if (!selectedMilestoneId || editMilestone.trim() === "") return;
-
     try {
       await axios.patch(
         `http://localhost:4000/api/v1/assigner/task/milestone/${selectedMilestoneId}`,
@@ -132,36 +138,44 @@ const Milestone: React.FC = () => {
           headers: { "Content-Type": "application/json" },
         }
       );
-
       setMilestones(
         milestones.map((m) =>
           m.id === selectedMilestoneId ? { ...m, milestone: editMilestone } : m
         )
       );
-
       setEditDialogOpen(false);
-      toast.success("Milestone updated successfully");
+      toast.success("Milestone updated successfully", {
+        autoClose: 5000,
+        closeOnClick: true,
+      });
     } catch (error) {
       console.error("Error updating milestone:", error);
-      toast.error("Failed to update milestone");
+      toast.error("Failed to update milestone", {
+        autoClose: 5000,
+        closeOnClick: true,
+      });
     }
   };
 
   const deleteMilestone = async () => {
     if (!selectedMilestoneId) return;
-
     try {
       await axios.delete(
         `http://localhost:4000/api/v1/assigner/task/milestone/${selectedMilestoneId}`,
         { withCredentials: true }
       );
-
       setMilestones(milestones.filter((m) => m.id !== selectedMilestoneId));
       setDeleteDialogOpen(false);
-      toast.success("Milestone deleted successfully");
+      toast.success("Milestone deleted successfully", {
+        autoClose: 5000,
+        closeOnClick: true,
+      });
     } catch (error) {
       console.error("Error deleting milestone:", error);
-      toast.error("Failed to delete milestone");
+      toast.error("Failed to delete milestone", {
+        autoClose: 5000,
+        closeOnClick: true,
+      });
     }
   };
 
@@ -242,11 +256,11 @@ const Milestone: React.FC = () => {
               <h2 className="text-blue-800 text-xl font-bold">
                 Add New Milestone
               </h2>
-              <DialogTrigger asChild>
-                <button onClick={() => setDialogOpen(false)}>
+              {/* <DialogTrigger asChild> */}
+              {/* <button onClick={() => setDialogOpen(false)}>
                   <X className="text-blue-600 cursor-pointer hover:text-blue-800" />
-                </button>
-              </DialogTrigger>
+                </button> */}
+              {/* </DialogTrigger> */}
             </div>
             <input
               type="text"
@@ -271,9 +285,9 @@ const Milestone: React.FC = () => {
               <h2 className="text-blue-800 text-xl font-bold">
                 Edit Milestone
               </h2>
-              <button onClick={() => setEditDialogOpen(false)}>
+              {/* <button onClick={() => setEditDialogOpen(false)}>
                 <X className="text-blue-600 cursor-pointer hover:text-blue-800" />
-              </button>
+              </button> */}
             </div>
             <input
               type="text"
@@ -298,9 +312,9 @@ const Milestone: React.FC = () => {
               <h2 className="text-blue-800 text-xl font-bold">
                 Delete Milestone
               </h2>
-              <button onClick={() => setDeleteDialogOpen(false)}>
+              {/* <button onClick={() => setDeleteDialogOpen(false)}>
                 <X className="text-blue-600 cursor-pointer hover:text-blue-800" />
-              </button>
+              </button> */}
             </div>
             <p className="text-gray-700 mb-4">
               Are you sure you want to delete this milestone? This action cannot
@@ -335,7 +349,19 @@ const Milestone: React.FC = () => {
         />
       )}
 
-      <ToastContainer position="top-right" autoClose={3000} />
+<ToastContainer
+  position="top-right"
+  autoClose={5000}
+  hideProgressBar={false}
+  newestOnTop={false}
+  closeOnClick
+  rtl={false}
+  pauseOnFocusLoss
+  draggable
+  pauseOnHover
+  theme="colored"
+  containerId="milestone-toasts"
+/>
     </div>
   );
 };

@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { Link } from "react-router-dom";
+import { FaBars } from "react-icons/fa";
+import { motion, AnimatePresence } from "framer-motion";
+
 
 function Calendar() {
   const [tasks, setTasks] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
 
   // State for current month and year navigation
   const today = new Date();
@@ -82,7 +87,78 @@ function Calendar() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl p-4 mt-28">
+    <div className="mx-auto max-w-2xl p-4 mt-20">
+    
+      <div className="relative flex justify-end mb-8">
+      <h1 className="text-4xl font-bold mr-auto "> Calendar </h1>
+      <button
+    onClick={() => setShowMenu(!showMenu)}
+    className="bg-gray-600 text-white p-3 rounded-full shadow-lg hover:bg-gray-700 transition"
+  >
+    <FaBars size={20} />
+  </button>
+                
+  <AnimatePresence>
+  {showMenu && (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.3 }}
+      className="absolute right-0 mt-2 w-48 bg-gray-200 rounded-lg shadow-lg p-3 z-50"
+    >
+      <ul className="space-y-2 text-gray-700">
+        <li className="hover:bg-gray-300 rounded-md transition">
+          <Link
+            to="/task-home"
+            className="block p-2"
+            onClick={() => setShowMenu(false)}
+          >
+            Task Home Page
+          </Link>
+        </li>
+        <li className="hover:bg-gray-300 rounded-md transition">
+          <Link
+            to="/assign-task"
+            className="block p-2"
+            onClick={() => setShowMenu(false)}
+          >
+            Assigned Tasks
+          </Link>
+        </li>
+        <li className="hover:bg-gray-300 rounded-md transition">
+          <Link
+            to="/task"
+            className="block p-2"
+            onClick={() => setShowMenu(false)}
+          >
+            Assign a Task
+          </Link>
+        </li>
+        <li className="hover:bg-gray-300 rounded-md transition">
+          <Link
+            to="/completed-tasks"
+            className="block p-2"
+            onClick={() => setShowMenu(false)}
+          >
+            Completed Tasks
+          </Link>
+        </li>
+        {/* New Calendar Option */}
+        <li className="hover:bg-gray-300 rounded-md transition">
+          <Link
+            to="/calendar"
+            className="block p-2"
+            onClick={() => setShowMenu(false)}
+          >
+            Calendar
+          </Link>
+        </li>
+      </ul>
+    </motion.div>
+  )}
+</AnimatePresence>
+              </div>
       <div className="flex justify-between items-center mb-4">
         <button
           onClick={handlePrevMonth}

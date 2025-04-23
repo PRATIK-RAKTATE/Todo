@@ -91,55 +91,65 @@ const CompletedTasks: React.FC = () => {
           </button>
           
           <AnimatePresence>
-            {showMenu && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
-                className="absolute right-0 mt-2 w-48 bg-gray-200 rounded-lg shadow-lg p-3 z-50"
-              >
-                <ul className="space-y-2 text-gray-700">
-                  <li className="hover:bg-gray-300 rounded-md transition">
-                    <Link 
-                      to="/task-home" 
-                      className="block p-2"
-                      onClick={() => setShowMenu(false)}
-                    >
-                      Task Home Page
-                    </Link>
-                  </li>
-                  <li className="hover:bg-gray-300 rounded-md transition">
-                    <Link 
-                      to="/assign-task" 
-                      className="block p-2"
-                      onClick={() => setShowMenu(false)}
-                    >
-                      Assigned Tasks
-                    </Link>
-                  </li>
-                  <li className="hover:bg-gray-300 rounded-md transition">
-                    <Link 
-                      to="/task" 
-                      className="block p-2"
-                      onClick={() => setShowMenu(false)}
-                    >
-                      Assign a Task
-                    </Link>
-                  </li>
-                  <li className="hover:bg-gray-300 rounded-md transition">
-                    <Link 
-                      to="/completed-tasks" 
-                      className="block p-2"
-                      onClick={() => setShowMenu(false)}
-                    >
-                      Completed Tasks
-                    </Link>
-                  </li>
-                </ul>
-              </motion.div>
-            )}
-          </AnimatePresence>
+  {showMenu && (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.3 }}
+      className="absolute right-0 mt-2 w-48 bg-gray-200 rounded-lg shadow-lg p-3 z-50"
+    >
+      <ul className="space-y-2 text-gray-700">
+        <li className="hover:bg-gray-300 rounded-md transition">
+          <Link
+            to="/task-home"
+            className="block p-2"
+            onClick={() => setShowMenu(false)}
+          >
+            Task Home Page
+          </Link>
+        </li>
+        <li className="hover:bg-gray-300 rounded-md transition">
+          <Link
+            to="/assign-task"
+            className="block p-2"
+            onClick={() => setShowMenu(false)}
+          >
+            Assigned Tasks
+          </Link>
+        </li>
+        <li className="hover:bg-gray-300 rounded-md transition">
+          <Link
+            to="/task"
+            className="block p-2"
+            onClick={() => setShowMenu(false)}
+          >
+            Assign a Task
+          </Link>
+        </li>
+        <li className="hover:bg-gray-300 rounded-md transition">
+          <Link
+            to="/completed-tasks"
+            className="block p-2"
+            onClick={() => setShowMenu(false)}
+          >
+            Completed Tasks
+          </Link>
+        </li>
+        {/* New Calendar Option */}
+        <li className="hover:bg-gray-300 rounded-md transition">
+          <Link
+            to="/calendar"
+            className="block p-2"
+            onClick={() => setShowMenu(false)}
+          >
+            Calendar
+          </Link>
+        </li>
+      </ul>
+    </motion.div>
+  )}
+</AnimatePresence>
         </div>
       </div>
 
