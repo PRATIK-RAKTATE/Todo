@@ -95,65 +95,65 @@ const TaskCreateForm = () => {
           <FaBars size={20} />
         </button>
         <AnimatePresence>
-  {showMenu && (
-    <motion.div
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.3 }}
-      className="absolute right-0 mt-2 w-48 bg-gray-200 rounded-lg shadow-lg p-3 z-50"
-    >
-      <ul className="space-y-2 text-gray-700">
-        <li className="hover:bg-gray-300 rounded-md transition">
-          <Link
-            to="/task-home"
-            className="block p-2"
-            onClick={() => setShowMenu(false)}
-          >
-            Task Home Page
-          </Link>
-        </li>
-        <li className="hover:bg-gray-300 rounded-md transition">
-          <Link
-            to="/assign-task"
-            className="block p-2"
-            onClick={() => setShowMenu(false)}
-          >
-            Assigned Tasks
-          </Link>
-        </li>
-        <li className="hover:bg-gray-300 rounded-md transition">
-          <Link
-            to="/task"
-            className="block p-2"
-            onClick={() => setShowMenu(false)}
-          >
-            Assign a Task
-          </Link>
-        </li>
-        <li className="hover:bg-gray-300 rounded-md transition">
-          <Link
-            to="/completed-tasks"
-            className="block p-2"
-            onClick={() => setShowMenu(false)}
-          >
-            Completed Tasks
-          </Link>
-        </li>
-        {/* New Calendar Option */}
-        <li className="hover:bg-gray-300 rounded-md transition">
-          <Link
-            to="/calendar"
-            className="block p-2"
-            onClick={() => setShowMenu(false)}
-          >
-            Calendar
-          </Link>
-        </li>
-      </ul>
-    </motion.div>
-  )}
-</AnimatePresence>
+          {showMenu && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+              className="absolute right-0 mt-2 w-48 bg-gray-200 rounded-lg shadow-lg p-3 z-50"
+            >
+              <ul className="space-y-2 text-gray-700">
+                <li className="hover:bg-gray-300 rounded-md transition">
+                  <Link
+                    to="/task-home"
+                    className="block p-2"
+                    onClick={() => setShowMenu(false)}
+                  >
+                    Task Home Page
+                  </Link>
+                </li>
+                <li className="hover:bg-gray-300 rounded-md transition">
+                  <Link
+                    to="/assign-task"
+                    className="block p-2"
+                    onClick={() => setShowMenu(false)}
+                  >
+                    Assigned Tasks
+                  </Link>
+                </li>
+                <li className="hover:bg-gray-300 rounded-md transition">
+                  <Link
+                    to="/task"
+                    className="block p-2"
+                    onClick={() => setShowMenu(false)}
+                  >
+                    Assign a Task
+                  </Link>
+                </li>
+                <li className="hover:bg-gray-300 rounded-md transition">
+                  <Link
+                    to="/completed-tasks"
+                    className="block p-2"
+                    onClick={() => setShowMenu(false)}
+                  >
+                    Completed Tasks
+                  </Link>
+                </li>
+                {/* New Calendar Option */}
+                <li className="hover:bg-gray-300 rounded-md transition">
+                  <Link
+                    to="/calendar"
+                    className="block p-2"
+                    onClick={() => setShowMenu(false)}
+                  >
+                    Calendar
+                  </Link>
+                </li>
+              </ul>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="w-full max-w-md mx-auto my-8 p-4 sm:p-6 bg-blue-50 border border-blue-300 rounded-xl shadow-md">
@@ -222,7 +222,7 @@ const TaskCreateForm = () => {
             )} */}
           </div>
 
-          {/* Date Picker */}
+          {/* Date Picker with minDate set to today */}
           <div>
             <label className="block text-blue-700 mb-1 text-sm sm:text-base">
               Deadline
@@ -234,6 +234,8 @@ const TaskCreateForm = () => {
               dateFormat="yyyy-MM-dd HH:mm"
               className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
               placeholderText="Select deadline"
+              minDate={new Date()} // Set minimum date to today
+              filterDate={(date) => date >= new Date().setHours(0, 0, 0, 0)} // Additional filter to ensure date is today or future
             />
             {/* {!selectedDate && (
               <p className="text-red-500 text-xs sm:text-sm mt-1">

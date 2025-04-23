@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { FaBars } from "react-icons/fa";
 import { AnimatePresence, motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 
 interface User {
   id: string;
@@ -37,6 +37,8 @@ const TaskHomePage: React.FC = () => {
   const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  const navigate = useNavigate();
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -78,7 +80,9 @@ const TaskHomePage: React.FC = () => {
         setUserTasks(response.data.data);
       } else {
         console.error("[5] Invalid data format:", response.data);
-        throw new Error(response.data.message || "Invalid user tasks data format");
+        throw new Error(
+          response.data.message || "Invalid user tasks data format"
+        );
       }
     } catch (err) {
       console.error("[6] Error in fetchUserTasks:", err);
@@ -164,7 +168,7 @@ const TaskHomePage: React.FC = () => {
   // Format date string to a readable format
   const formatDate = (dateString: string) => {
     if (!dateString) return "No deadline";
-    
+
     try {
       return new Date(dateString).toLocaleDateString("en-US", {
         year: "numeric",
@@ -197,7 +201,12 @@ const TaskHomePage: React.FC = () => {
         transition={{ duration: 0.6 }}
         className="w-full max-w-6xl flex flex-wrap justify-between items-center mt-6 gap-3"
       >
-        <button className="bg-gray-600 text-white px-5 py-2 rounded-lg shadow-lg hover:bg-gray-700 transition">
+        <button
+          onClick={() => {
+            navigate("/task");
+          }}
+          className="bg-gray-600 text-white px-5 py-2 rounded-lg shadow-lg hover:bg-gray-700 transition"
+        >
           This Milestone ◀
         </button>
         <button
@@ -288,9 +297,9 @@ const TaskHomePage: React.FC = () => {
       </motion.div>
 
       {/* Main Content Section */}
-      <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+      <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-1 gap-6 mt-6 place-items-center">
         {/* Left Section - Requests & Ongoing Tasks */}
-        <div className="col-span-1 bg-white p-4 rounded-lg shadow-lg">
+        {/* <div className="col-span-1 bg-white p-4 rounded-lg shadow-lg">
           <h2 className="text-lg font-bold text-gray-800">Requests</h2>
           <div className="mt-4 space-y-3">
             <div className="p-3 bg-gray-200 rounded-lg">
@@ -312,10 +321,10 @@ const TaskHomePage: React.FC = () => {
               From - Task Title - Deadline - Status
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Right Section - Dynamic Content */}
-        <div className="col-span-2 bg-white p-4 rounded-lg shadow-lg">
+        <div className="col-span-2 bg-white p-4 rounded-lg shadow-lg w-full">
           {activeSection === "tasks" && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -351,10 +360,7 @@ const TaskHomePage: React.FC = () => {
                         key={task.id}
                         className="p-4 bg-green-200 rounded-lg shadow-md hover:bg-green-300 transition cursor-pointer"
                       >
-                        <Link
-                          to={`/task-details/${task.id}`}
-                          className="block"
-                        >
+                        <Link to={`/task-details/${task.id}`} className="block">
                           <div className="flex flex-col md:flex-row md:justify-between md:items-start">
                             <div className="flex-1">
                               <h3 className="font-medium text-gray-800">
@@ -404,7 +410,9 @@ const TaskHomePage: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <h2 className="text-lg font-bold text-gray-800">My Accepted Tasks</h2>
+              <h2 className="text-lg font-bold text-gray-800">
+                My Accepted Tasks
+              </h2>
 
               {loading && (
                 <div className="text-center my-8">
@@ -433,10 +441,7 @@ const TaskHomePage: React.FC = () => {
                         key={task.id}
                         className="p-4 bg-yellow-200 rounded-lg shadow-md hover:bg-yellow-300 transition cursor-pointer"
                       >
-                        <Link
-                          to={`/task-details/${task.id}`}
-                          className="block"
-                        >
+                        <Link to={`/task-details/${task.id}`} className="block">
                           <div className="flex flex-col md:flex-row md:justify-between md:items-start">
                             <div className="flex-1">
                               <h3 className="font-medium text-gray-800">
@@ -473,7 +478,9 @@ const TaskHomePage: React.FC = () => {
                       </li>
                     ))
                   ) : (
-                    <p className="text-gray-500 p-4">You have no accepted tasks.</p>
+                    <p className="text-gray-500 p-4">
+                      You have no accepted tasks.
+                    </p>
                   )}
                 </ul>
               )}
