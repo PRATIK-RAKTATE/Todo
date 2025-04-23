@@ -422,45 +422,39 @@ const getTaskById = async (req, res) => {
 //get task by user
 const getTasksAcceptedByUser = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const assignerId = req.user.id;
 
-    //validate user ID format
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
+    if (!mongoose.Types.ObjectId.isValid(assignerId)) {
       return res.status(400).json({
         success: false,
         message: "Invalid user ID format",
       });
     }
 
-    //find tasks where the user is the receiver and the task is in progress
-    const tasks = await Task.find({
-      receiver: userId,
-      status: "inProgress", //glter for accepted tasks
-    })
+    // Get tasks where current user is the ASSIGNER
+    const tasks = await Task.find({ assigner: assignerId })
       .populate("assigner", "name email _id")
       .populate("receiver", "name email _id")
       .select("-__v")
       .sort({ createdAt: -1 });
 
-    //transform tasks for better client-side consumption
+    // Transform tasks
     const transformedTasks = tasks.map((task) => ({
       id: task._id,
       title: task.title,
       description: task.description,
-      status: task.status,
-      deadline: task.deadline
-        ? new Date(task.deadline).toISOString().slice(0, 10)
-        : null, // Format deadline
+      status: task.status.toLowerCase(),
+      deadline: task.deadline?.toISOString().split('T')[0] || null,
       assigner: {
         id: task.assigner._id,
         name: task.assigner.name,
         email: task.assigner.email,
       },
-      receiver: {
+      receiver: task.receiver ? {
         id: task.receiver._id,
         name: task.receiver.name,
         email: task.receiver.email,
-      },
+      } : null,
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
     }));
@@ -470,11 +464,12 @@ const getTasksAcceptedByUser = async (req, res) => {
       count: transformedTasks.length,
       data: transformedTasks,
     });
+
   } catch (error) {
-    console.error("Error fetching accepted tasks:", error);
+    console.error("Error fetching assigned tasks:", error);
     return res.status(500).json({
       success: false,
-      message: "Internal server error",
+      message: "Failed to fetch assigned tasks",
       error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }

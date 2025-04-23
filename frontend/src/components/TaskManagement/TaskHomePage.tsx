@@ -2,49 +2,41 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { FaBars } from "react-icons/fa";
 import { AnimatePresence, motion } from "framer-motion";
-import { Link } from "react-router-dom"; // Added missing import"
+import { Link } from "react-router-dom";
 
 interface User {
   id: string;
   name: string;
-  title: string;
-  status: string;
-  deadline: string;
+  email?: string;
 }
 
 interface Task {
-  id: number;
+  id: string;
   title: string;
-  deadline: string;
   description?: string;
-  status?: string;
-  assignedDate?: string;
-  assigner?: string;
+  status: string;
+  deadline: string;
+  assigner?: User;
+  receiver?: User;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface ApiResponse<T = any> {
-  message: string;
-  statusCode: number;
+  success: boolean;
+  message?: string;
+  statusCode?: number;
   data: T;
+  count?: number;
 }
 
-// interface ApiResponse {
-//   statusCode: number;
-//   data: User[] | null;
-//   message?: string;
-// }
-
 const TaskHomePage: React.FC = () => {
-  var userArr: any = [];
-  var taskArr: any = [];
   const [showMenu, setShowMenu] = useState<boolean>(false);
   const [activeSection, setActiveSection] = useState<string | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
+  const [userTasks, setUserTasks] = useState<Task[]>([]);
+  const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [tasksLoading, setTasksLoading] = useState<boolean>(false);
-  const [tasksError, setTasksError] = useState<string | null>(null);
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -59,13 +51,65 @@ const TaskHomePage: React.FC = () => {
     }
   };
 
-  const fetchTasks = async (): Promise<void> => {
-    console.log("[1] Starting fetchTasks");
-    setTasksLoading(true);
-    setTasksError(null);
+  // Fetch tasks accepted by the current user
+  const fetchUserTasks = async (): Promise<void> => {
+    console.log("[1] Starting fetchUserTasks");
+    setLoading(true);
+    setError(null);
 
     try {
-      console.log("[2] Making API call to tasks endpoint");
+      console.log("[2] Making API call to user tasks endpoint");
+      // CORRECTED API ENDPOINT
+      const response = await axios.get<ApiResponse<Task[]>>(
+        "http://localhost:4000/api/v1/assigner/task/me",
+        {
+          withCredentials: true,
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log("[3] API response received:", response);
+
+      if (response.data && response.data.success) {
+        console.log("[4] Valid user tasks data received:", response.data.data);
+        setUserTasks(response.data.data);
+      } else {
+        console.error("[5] Invalid data format:", response.data);
+        throw new Error(response.data.message || "Invalid user tasks data format");
+      }
+    } catch (err) {
+      console.error("[6] Error in fetchUserTasks:", err);
+
+      let errorMessage = "Failed to load user tasks";
+      if (axios.isAxiosError(err)) {
+        console.error("[7] Axios error details:", {
+          status: err.response?.status,
+          data: err.response?.data,
+          config: err.config,
+        });
+        errorMessage = err.response?.data?.message || err.message;
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+
+      setError(errorMessage);
+    } finally {
+      console.log("[8] Final cleanup - setting loading to false");
+      setLoading(false);
+    }
+  };
+
+  // Fetch all tasks
+  const fetchAllTasks = async (): Promise<void> => {
+    console.log("[1] Starting fetchAllTasks");
+    setLoading(true);
+    setError(null);
+
+    try {
+      console.log("[2] Making API call to all tasks endpoint");
       const response = await axios.get<ApiResponse<Task[]>>(
         "http://localhost:4000/api/v1/assigner/task",
         {
@@ -78,26 +122,20 @@ const TaskHomePage: React.FC = () => {
       );
 
       console.log("[3] API response received:", response);
-      console.log("[4] Response data:", response.data);
 
-      if (!response.data) {
-        console.error("[5] Empty response data");
-        throw new Error("Empty response from server");
-      }
-
-      if (response.data && Array.isArray(response.data.data)) {
-        console.log("[6] Valid tasks data received:", response.data.data);
-        setTasks(response.data.data);
+      if (response.data && response.data.success) {
+        console.log("[4] Valid tasks data received:", response.data.data);
+        setAllTasks(response.data.data);
       } else {
-        console.error("[7] Invalid data format:", response.data);
+        console.error("[5] Invalid data format:", response.data);
         throw new Error(response.data.message || "Invalid tasks data format");
       }
     } catch (err) {
-      console.error("[8] Error in fetchTasks:", err);
+      console.error("[6] Error in fetchAllTasks:", err);
 
       let errorMessage = "Failed to load tasks";
       if (axios.isAxiosError(err)) {
-        console.error("[9] Axios error details:", {
+        console.error("[7] Axios error details:", {
           status: err.response?.status,
           data: err.response?.data,
           config: err.config,
@@ -107,114 +145,42 @@ const TaskHomePage: React.FC = () => {
         errorMessage = err.message;
       }
 
-      setTasksError(errorMessage);
+      setError(errorMessage);
     } finally {
-      console.log("[10] Final cleanup - setting loading to false");
-      setTasksLoading(false);
+      console.log("[8] Final cleanup - setting loading to false");
+      setLoading(false);
     }
   };
 
-  // Example tasks can be added to the initial state if needed
-  useEffect(() => {
-    setTasks([
-      { id: 1, title: "Design Landing Page", deadline: "March 31, 2025" },
-      { id: 2, title: "API Integration", deadline: "April 2, 2025" },
-      { id: 3, title: "Fix UI Bugs", deadline: "April 5, 2025" },
-    ]);
-  }, []);
-
+  // Fetch the appropriate data when the active section changes
   useEffect(() => {
     if (activeSection === "users") {
-      fetchUsers();
+      fetchUserTasks();
     } else if (activeSection === "tasks") {
-      fetchTasks();
+      fetchAllTasks();
     }
   }, [activeSection]);
 
-  const fetchUsers = async (): Promise<void> => {
-    setLoading(true);
-    setError(null);
-
+  // Format date string to a readable format
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "No deadline";
+    
     try {
-      const response = await axios.get<ApiResponse>(
-        "http://localhost:4000/api/v1/assigner/task/me",  
-        {
-          withCredentials: true,
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      console.log("API Response:", response.data);
-
-      if (!response.data) {
-        throw new Error("Empty response from server");
-      }
-
-      userArr = response.data.data as User[];
-      console.log("User Array:", userArr);
-
-      if (response.data) {
-        // Handle both response formats
-        const responseData = response.data.data;
-
-        if (Array.isArray(responseData)) {
-          setUsers(responseData);
-        } else if (responseData?.names && Array.isArray(responseData.names)) {
-          setUsers(responseData.names);
-        } else {
-          throw new Error("Valid users array not found in response");
-        }
-      } else if (!response.data) {
-        setUsers([]);
-      } else {
-        throw new Error(response.data || "Unexpected response format");
-      }
-    } catch (err) {
-      console.error("Error fetching users:", err);
-      let errorMessage = "Failed to load users";
-
-      if (axios.isAxiosError(err)) {
-        errorMessage = err.response?.data?.message || err.message;
-        console.error("HTTP Error Details:", {
-          status: err.response?.status,
-          data: err.response?.data,
-        });
-      } else if (err instanceof Error) {
-        errorMessage = err.message;
-      }
-
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
+      return new Date(dateString).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    } catch (e) {
+      console.error("Invalid date format:", dateString);
+      return dateString || "Invalid Date";
     }
+  };
 
-    // Move these additional API calls outside the finally block
-    try {
-      const response = await axios.get(
-        "http://localhost:4000/api/v1/assigner/task/me",
-        { withCredentials: true }
-      );
-
-      if (
-        response.data &&
-        response.data.success &&
-        Array.isArray(response.data.data)
-      ) {
-        const tasks = response.data.data;
-        console.log("Fetched tasks:", tasks);
-        // Process tasks as needed
-      } else {
-        throw new Error(
-          "Unexpected response format: " + JSON.stringify(response.data)
-        );
-      }
-    } catch (err) {
-      console.error("Error fetching tasks:", err);
-      // Additional error handling as needed
-    }
+  // Format status string with proper capitalization
+  const formatStatus = (status: string) => {
+    if (!status) return "Unknown";
+    return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
   return (
@@ -260,65 +226,64 @@ const TaskHomePage: React.FC = () => {
             <FaBars size={20} />
           </button>
           <AnimatePresence>
-  {showMenu && (
-    <motion.div
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.3 }}
-      className="absolute right-0 mt-2 w-48 bg-gray-200 rounded-lg shadow-lg p-3 z-50"
-    >
-      <ul className="space-y-2 text-gray-700">
-        <li className="hover:bg-gray-300 rounded-md transition">
-          <Link
-            to="/task-home"
-            className="block p-2"
-            onClick={() => setShowMenu(false)}
-          >
-            Task Home Page
-          </Link>
-        </li>
-        <li className="hover:bg-gray-300 rounded-md transition">
-          <Link
-            to="/assign-task"
-            className="block p-2"
-            onClick={() => setShowMenu(false)}
-          >
-            Assigned Tasks
-          </Link>
-        </li>
-        <li className="hover:bg-gray-300 rounded-md transition">
-          <Link
-            to="/task"
-            className="block p-2"
-            onClick={() => setShowMenu(false)}
-          >
-            Assign a Task
-          </Link>
-        </li>
-        <li className="hover:bg-gray-300 rounded-md transition">
-          <Link
-            to="/completed-tasks"
-            className="block p-2"
-            onClick={() => setShowMenu(false)}
-          >
-            Completed Tasks
-          </Link>
-        </li>
-        {/* New Calendar Option */}
-        <li className="hover:bg-gray-300 rounded-md transition">
-          <Link
-            to="/calendar"
-            className="block p-2"
-            onClick={() => setShowMenu(false)}
-          >
-            Calendar
-          </Link>
-        </li>
-      </ul>
-    </motion.div>
-  )}
-</AnimatePresence>
+            {showMenu && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+                className="absolute right-0 mt-2 w-48 bg-gray-200 rounded-lg shadow-lg p-3 z-50"
+              >
+                <ul className="space-y-2 text-gray-700">
+                  <li className="hover:bg-gray-300 rounded-md transition">
+                    <Link
+                      to="/task-home"
+                      className="block p-2"
+                      onClick={() => setShowMenu(false)}
+                    >
+                      Task Home Page
+                    </Link>
+                  </li>
+                  <li className="hover:bg-gray-300 rounded-md transition">
+                    <Link
+                      to="/assign-task"
+                      className="block p-2"
+                      onClick={() => setShowMenu(false)}
+                    >
+                      Assigned Tasks
+                    </Link>
+                  </li>
+                  <li className="hover:bg-gray-300 rounded-md transition">
+                    <Link
+                      to="/task"
+                      className="block p-2"
+                      onClick={() => setShowMenu(false)}
+                    >
+                      Assign a Task
+                    </Link>
+                  </li>
+                  <li className="hover:bg-gray-300 rounded-md transition">
+                    <Link
+                      to="/completed-tasks"
+                      className="block p-2"
+                      onClick={() => setShowMenu(false)}
+                    >
+                      Completed Tasks
+                    </Link>
+                  </li>
+                  <li className="hover:bg-gray-300 rounded-md transition">
+                    <Link
+                      to="/calendar"
+                      className="block p-2"
+                      onClick={() => setShowMenu(false)}
+                    >
+                      Calendar
+                    </Link>
+                  </li>
+                </ul>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </motion.div>
 
@@ -359,18 +324,18 @@ const TaskHomePage: React.FC = () => {
             >
               <h2 className="text-lg font-bold text-gray-800">All Tasks</h2>
 
-              {tasksLoading && (
+              {loading && (
                 <div className="text-center my-8">
                   <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
                   <p className="mt-2 text-gray-600">Loading tasks...</p>
                 </div>
               )}
 
-              {tasksError && (
+              {error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded my-4">
-                  <p>Error: {tasksError}</p>
+                  <p>Error: {error}</p>
                   <button
-                    onClick={fetchTasks}
+                    onClick={fetchAllTasks}
                     className="mt-2 bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded"
                   >
                     Retry
@@ -378,75 +343,53 @@ const TaskHomePage: React.FC = () => {
                 </div>
               )}
 
-              {!tasksLoading && !tasksError && (
+              {!loading && !error && (
                 <ul className="mt-4 space-y-3">
-                  {tasks.length > 0 ? (
-                    tasks.map((task) => {
-                      // Safe date formatting with fallback
-                      const formatDate = (dateString: string) => {
-                        try {
-                          return new Date(dateString).toLocaleDateString(
-                            "en-US",
-                            {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            }
-                          );
-                        } catch (e) {
-                          console.error("Invalid date format:", dateString);
-                          return "Invalid Date";
-                        }
-                      };
-
-                      // Status formatting with fallback
-                      const formattedStatus = task.status
-                        ? task.status.charAt(0).toUpperCase() +
-                          task.status.slice(1)
-                        : "Unknown Status";
-
-                      return (
-                        <li
-                          key={task.id}
-                          className="p-4 bg-green-200 rounded-lg shadow-md hover:bg-green-300 transition cursor-pointer"
+                  {allTasks.length > 0 ? (
+                    allTasks.map((task) => (
+                      <li
+                        key={task.id}
+                        className="p-4 bg-green-200 rounded-lg shadow-md hover:bg-green-300 transition cursor-pointer"
+                      >
+                        <Link
+                          to={`/task-details/${task.id}`}
+                          className="block"
                         >
-                          <Link
-                            to={`/task-details/${task.id}`}
-                            className="block"
-                          >
-                            <div className="flex flex-col md:flex-row md:justify-between md:items-start">
-                              <div className="flex-1">
-                                <h3 className="font-medium text-gray-800">
-                                  {task.title || "Untitled Task"}
-                                </h3>
-                                {task.description && (
-                                  <p className="text-sm text-gray-600 mt-1">
-                                    {task.description}
-                                  </p>
-                                )}
-                              </div>
-                              <div className="mt-2 md:mt-0 md:ml-4">
-                                <p className="text-sm text-gray-600">
-                                  Deadline: {formatDate(task.deadline)}
+                          <div className="flex flex-col md:flex-row md:justify-between md:items-start">
+                            <div className="flex-1">
+                              <h3 className="font-medium text-gray-800">
+                                {task.title || "Untitled Task"}
+                              </h3>
+                              {task.description && (
+                                <p className="text-sm text-gray-600 mt-1">
+                                  {task.description}
                                 </p>
-                                {task.status && (
-                                  <p className="text-sm mt-1">
-                                    Status:{" "}
-                                    <span
-                                      className={`font-medium ${getStatusColor(
-                                        task.status
-                                      )}`}
-                                    >
-                                      {formattedStatus}
-                                    </span>
-                                  </p>
-                                )}
-                              </div>
+                              )}
+                              {task.assigner && (
+                                <p className="text-sm text-gray-600 mt-1">
+                                  From: {task.assigner.name}
+                                </p>
+                              )}
                             </div>
-                          </Link>
-                        </li>
-                      );
-                    })
+                            <div className="mt-2 md:mt-0 md:ml-4">
+                              <p className="text-sm text-gray-600">
+                                Deadline: {formatDate(task.deadline)}
+                              </p>
+                              <p className="text-sm mt-1">
+                                Status:{" "}
+                                <span
+                                  className={`font-medium ${getStatusColor(
+                                    task.status
+                                  )}`}
+                                >
+                                  {formatStatus(task.status)}
+                                </span>
+                              </p>
+                            </div>
+                          </div>
+                        </Link>
+                      </li>
+                    ))
                   ) : (
                     <p className="text-gray-500 p-4">No tasks found.</p>
                   )}
@@ -461,12 +404,12 @@ const TaskHomePage: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <h2 className="text-lg font-bold text-gray-800">Users List</h2>
+              <h2 className="text-lg font-bold text-gray-800">My Accepted Tasks</h2>
 
               {loading && (
                 <div className="text-center my-8">
                   <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-                  <p className="mt-2 text-gray-600">Loading users...</p>
+                  <p className="mt-2 text-gray-600">Loading your tasks...</p>
                 </div>
               )}
 
@@ -474,7 +417,7 @@ const TaskHomePage: React.FC = () => {
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded my-4">
                   <p>Error: {error}</p>
                   <button
-                    onClick={fetchUsers}
+                    onClick={fetchUserTasks}
                     className="mt-2 bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded"
                   >
                     Retry
@@ -484,19 +427,53 @@ const TaskHomePage: React.FC = () => {
 
               {!loading && !error && (
                 <ul className="mt-4 space-y-3">
-                  {users.length > 0 ? (
-                    users.map((user) => (
+                  {userTasks.length > 0 ? (
+                    userTasks.map((task) => (
                       <li
-                        key={user.id}
-                        className="p-3 bg-yellow-200 rounded-lg shadow-md hover:bg-yellow-300 transition cursor-pointer flex justify-between items-center"
+                        key={task.id}
+                        className="p-4 bg-yellow-200 rounded-lg shadow-md hover:bg-yellow-300 transition cursor-pointer"
                       >
-                        <span> {user.title}</span>
-                        <span>{user.deadline}</span>
-                        <span>{user.status}</span>
+                        <Link
+                          to={`/task-details/${task.id}`}
+                          className="block"
+                        >
+                          <div className="flex flex-col md:flex-row md:justify-between md:items-start">
+                            <div className="flex-1">
+                              <h3 className="font-medium text-gray-800">
+                                {task.title || "Untitled Task"}
+                              </h3>
+                              {task.description && (
+                                <p className="text-sm text-gray-600 mt-1">
+                                  {task.description}
+                                </p>
+                              )}
+                              {task.assigner && (
+                                <p className="text-sm text-gray-600 mt-1">
+                                  Assigned by: {task.assigner.name}
+                                </p>
+                              )}
+                            </div>
+                            <div className="mt-2 md:mt-0 md:ml-4">
+                              <p className="text-sm text-gray-600">
+                                Deadline: {formatDate(task.deadline)}
+                              </p>
+                              <p className="text-sm mt-1">
+                                Status:{" "}
+                                <span
+                                  className={`font-medium ${getStatusColor(
+                                    task.status
+                                  )}`}
+                                >
+                                  {formatStatus(task.status)}
+                                </span>
+                              </p>
+                            </div>
+                          </div>
+                        </Link>
                       </li>
                     ))
                   ) : (
-                    <p className="text-gray-500">No users found.</p>
+                    <p className="text-gray-500 p-4">You have no accepted tasks.</p>
                   )}
                 </ul>
               )}
