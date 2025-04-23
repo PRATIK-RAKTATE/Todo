@@ -422,29 +422,35 @@ const getTaskById = async (req, res) => {
 //get task by user
 const getTasksAcceptedByUser = async (req, res) => {
   try {
-    const assignerId = req.user.id;
+    const userId = req.user.id;
 
-    if (!mongoose.Types.ObjectId.isValid(assignerId)) {
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({
         success: false,
         message: "Invalid user ID format",
       });
     }
 
-    // Get tasks where current user is the ASSIGNER
-    const tasks = await Task.find({ assigner: assignerId })
-      .populate("assigner", "name email _id")
-      .populate("receiver", "name email _id")
-      .select("-__v")
-      .sort({ createdAt: -1 });
+    // Get tasks where user is either ASSIGNER or RECEIVER
+    const tasks = await Task.find({
+      $or: [
+        { assigner: userId }, // Tasks user created/assigned
+        { receiver: userId }  // Tasks assigned to user
+      ]
+    })
+    .populate("assigner", "name email _id")
+    .populate("receiver", "name email _id")
+    .select("-__v")
+    .sort({ createdAt: -1 });
 
-    // Transform tasks
-    const transformedTasks = tasks.map((task) => ({
+    // Enhanced response with task type identification
+    const transformedTasks = tasks.map(task => ({
       id: task._id,
       title: task.title,
       description: task.description,
       status: task.status.toLowerCase(),
       deadline: task.deadline?.toISOString().split('T')[0] || null,
+      type: task.assigner._id.equals(userId) ? 'assigned-by-me' : 'assigned-to-me',
       assigner: {
         id: task.assigner._id,
         name: task.assigner.name,
@@ -466,10 +472,10 @@ const getTasksAcceptedByUser = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error fetching assigned tasks:", error);
+    console.error("Error fetching all user tasks:", error);
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch assigned tasks",
+      message: "Failed to fetch tasks",
       error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
